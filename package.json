@@ -1,0 +1,10 @@
+{
+  "name": "boop-kids-daw-v08",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "ai": "^6.0.39"
+  }
+}
