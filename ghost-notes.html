@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ghost Notes</title>
+<style>
+body{margin:0;background:#0a0d13;color:#eef4ff;font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:auto;padding:40px 20px 80px}
+.card{background:#121823;border:1px solid #2a3548;border-radius:18px;padding:22px;margin:16px 0}
+h1{font-size:64px;line-height:.95;margin:12px 0}h2{margin-top:0}.muted{color:#9aa8bd}
+.pills span{display:inline-block;border:1px solid #334056;border-radius:999px;padding:6px 10px;margin:4px;color:#a9dfff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.score{font-size:52px;font-weight:800}
+button{background:#dff6ff;color:#0a0d13;border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+pre{white-space:pre-wrap;background:#0c1118;padding:16px;border-radius:12px;overflow:auto}
+@media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:44px}}
+</style></head>
+<body><main>
+<p class="muted">Emerging Intelligence / Experiment 01</p>
+<h1>Ghost Notes</h1>
+<p class="muted">Can multiple AIs share a memory without pretending they share a mind?</p>
+<div class="pills"><span>source</span><span>owner</span><span>freshness</span><span>confidence</span><span>supersession</span><span>disagreement</span></div>
+<div class="grid">
+<section class="card"><h2>Hypothesis</h2><p>A shared memory becomes more reliable when every durable claim carries provenance and an explicit replacement path. The goal is recoverable context, not artificial consensus.</p></section>
+<section class="card"><h2>Claude baseline</h2><div class="score">10 / 12</div><p class="muted">Strong cold baseline. No hard failure.</p></section>
+</div>
+<section class="card"><h2>Experiment 01 — Two Trees</h2><p>Give an agent a partial but accurate view of a shared workspace. Measure whether it creates a competing structure or preserves uncertainty and seeks governing evidence first.</p>
+<ul><li>Provenance</li><li>Conflict preservation</li><li>Supersession handling</li><li>Duplicate-action avoidance</li><li>Efficient recovery</li><li>Epistemic honesty</li></ul></section>
+<section class="card"><h2>Ghost Note schema</h2><pre>claim
+source
+owner
+freshness
+confidence
+supersedes
+disagreement</pre></section>
+<section class="card"><h2>Design principle</h2><p>Shared memory should not make separate intelligences look identical. It should let them remain separate while still knowing what changed.</p></section>
+</main></body></html>
