@@ -1,36 +1,756 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ghost Notes</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ghost Notes — Cross-Agent Memory Console</title>
+<meta name="description" content="Ghost Notes: a provenance-tagged shared memory ledger and trial console for multiple AI agents.">
 <style>
-body{margin:0;background:#0a0d13;color:#eef4ff;font:16px/1.55 system-ui,sans-serif}
-main{max-width:1000px;margin:auto;padding:40px 20px 80px}
-.card{background:#121823;border:1px solid #2a3548;border-radius:18px;padding:22px;margin:16px 0}
-h1{font-size:64px;line-height:.95;margin:12px 0}h2{margin-top:0}.muted{color:#9aa8bd}
-.pills span{display:inline-block;border:1px solid #334056;border-radius:999px;padding:6px 10px;margin:4px;color:#a9dfff}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.score{font-size:52px;font-weight:800}
-button{background:#dff6ff;color:#0a0d13;border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
-pre{white-space:pre-wrap;background:#0c1118;padding:16px;border-radius:12px;overflow:auto}
-@media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:44px}}
-</style></head>
-<body><main>
-<p class="muted">Emerging Intelligence / Experiment 01</p>
-<h1>Ghost Notes</h1>
-<p class="muted">Can multiple AIs share a memory without pretending they share a mind?</p>
-<div class="pills"><span>source</span><span>owner</span><span>freshness</span><span>confidence</span><span>supersession</span><span>disagreement</span></div>
-<div class="grid">
-<section class="card"><h2>Hypothesis</h2><p>A shared memory becomes more reliable when every durable claim carries provenance and an explicit replacement path. The goal is recoverable context, not artificial consensus.</p></section>
-<section class="card"><h2>Claude baseline</h2><div class="score">10 / 12</div><p class="muted">Strong cold baseline. No hard failure.</p></section>
-</div>
-<section class="card"><h2>Experiment 01 — Two Trees</h2><p>Give an agent a partial but accurate view of a shared workspace. Measure whether it creates a competing structure or preserves uncertainty and seeks governing evidence first.</p>
-<ul><li>Provenance</li><li>Conflict preservation</li><li>Supersession handling</li><li>Duplicate-action avoidance</li><li>Efficient recovery</li><li>Epistemic honesty</li></ul></section>
-<section class="card"><h2>Ghost Note schema</h2><pre>claim
-source
-owner
-freshness
-confidence
-supersedes
-disagreement</pre></section>
-<section class="card"><h2>Design principle</h2><p>Shared memory should not make separate intelligences look identical. It should let them remain separate while still knowing what changed.</p></section>
-</main></body></html>
+:root{
+  --bg:#0a0d13;--panel:#121823;--panel-2:#0c1118;--line:#232d3e;--line-2:#334056;
+  --ink:#eef4ff;--muted:#9aa8bd;--faint:#6f7d93;--accent:#a9dfff;--accent-ink:#0a0d13;
+  /* status taxonomy */
+  --s-verified:#8ee3b0;--s-inferred:#a9c8ff;--s-proposed:#d7b8ff;
+  --s-unknown:#9aa8bd;--s-superseded:#7c8699;--s-disputed:#ffb4a8;
+  --up:#8ee3b0;--down:#ffb4a8;--warn:#ffd48a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1180px;margin:auto;padding:28px 16px 80px}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Header */
+.eyebrow{color:var(--muted);margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+h1{font-size:44px;line-height:1;margin:8px 0 4px;letter-spacing:-.01em}
+h1 span{color:var(--accent);font-weight:600;font-size:.5em;display:block;margin-top:8px;letter-spacing:0}
+.lede{max-width:62ch;margin:6px 0 0}
+nav.jump{position:sticky;top:0;z-index:5;background:rgba(10,13,19,.92);backdrop-filter:blur(8px);
+  display:flex;gap:6px;overflow-x:auto;padding:10px 0;margin:18px 0 6px;border-bottom:1px solid var(--line)}
+nav.jump a{flex:none;border:1px solid var(--line-2);border-radius:999px;padding:5px 12px;text-decoration:none;color:var(--accent);font-size:13px}
+nav.jump a:hover{background:var(--panel)}
+
+section.block{margin-top:28px}
+.block-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.block-h h2{margin:0;font-size:19px}
+.block-h .n{font-family:var(--mono);color:var(--faint);font-size:13px}
+.block-h .aside{margin-left:auto;color:var(--muted);font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+
+/* Buttons & fields */
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line-2)}
+.btn.danger{background:var(--down);color:#1b0c0a}
+.btn.small{padding:5px 10px;font-size:13px}
+input[type=text],input[type=search],select,textarea{background:var(--panel-2);border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:64px}
+label.f{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+
+/* Status chips */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid currentColor;white-space:nowrap;line-height:1.5}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-Verified{color:var(--s-verified)}.st-Inferred{color:var(--s-inferred)}.st-Proposed{color:var(--s-proposed)}
+.st-Unknown{color:var(--s-unknown)}.st-Superseded{color:var(--s-superseded)}.st-Disputed{color:var(--s-disputed)}
+.chip.issue{color:var(--warn)}
+.chip.local{color:var(--accent)}
+.legend{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 1 Dashboard */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.stat .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.stat .v{font-size:20px;font-weight:700;margin-top:4px;line-height:1.25}
+.stat .v.big{font-size:38px;font-weight:800;line-height:1.05}
+.stat .s{color:var(--muted);font-size:13px;margin-top:4px}
+.stat select{margin-top:6px;padding:5px 8px;width:auto;font-weight:700}
+.hyp{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+.hyp p{margin:0;font-size:17px;max-width:75ch}
+
+/* 2 Ledger */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input[type=search]{flex:1 1 240px;width:auto}
+.toolbar select{width:auto}
+.count{color:var(--muted);font-size:13px;margin-left:auto}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.note{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--st,var(--line-2));border-radius:12px;padding:12px 14px;min-width:0}
+.note[data-status=Superseded]{opacity:.72}
+.note[data-status=Superseded] .claim{text-decoration:line-through;text-decoration-color:var(--faint)}
+.note .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.note .id{font-family:var(--mono);font-weight:800;color:var(--accent);font-size:14px}
+.note .top .right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.note .top select{width:auto;padding:2px 6px;font-size:12px;border-radius:7px}
+.note .claim{font-weight:600;margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:96px 1fr;gap:3px 10px;margin:0;font-size:13px}
+.note dt{color:var(--faint);text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding-top:2px}
+.note dd{margin:0;color:#d6e0f0;overflow-wrap:anywhere}
+.note dd.issue{color:var(--warn)}
+.note .del{background:none;border:0;color:var(--faint);cursor:pointer;font-size:12px;padding:0}
+.note .del:hover{color:var(--down)}
+.empty{color:var(--muted);padding:12px 0}
+details.add{margin-top:14px}
+details.add summary{cursor:pointer;color:var(--accent);font-weight:700;list-style:none}
+details.add summary::-webkit-details-marker{display:none}
+details.add summary::before{content:"+ "}
+details.add[open] summary::before{content:"– "}
+form.addform{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+form.addform .wide{grid-column:1/-1}
+form.addform .actions{grid-column:1/-1;display:flex;gap:10px;align-items:center}
+.formmsg{font-size:13px}
+
+/* 3 Agent runs */
+.runs{width:100%;border-collapse:collapse;font-size:14px}
+.runs th{text-align:left;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+.runs td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.runs tr:last-child td{border-bottom:0}
+.agent{font-weight:800}
+.score{font-family:var(--mono);font-weight:700;font-size:16px}
+.score.pending{color:var(--faint);font-weight:500;font-size:14px}
+.delta{font-family:var(--mono);font-weight:700}
+.delta.up{color:var(--up)}.delta.down{color:var(--down)}.delta.flat{color:var(--muted)}
+.runs select{width:auto;padding:4px 8px;font-size:13px}
+.runs textarea{min-height:38px;font-size:13px;padding:6px 8px}
+.pstatus{font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px;background:#1b2332;color:var(--muted)}
+
+/* 4 Scoring */
+.scorehead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.scorehead select{width:auto}
+.scoregrid{width:100%;border-collapse:collapse;font-size:14px}
+.scoregrid th{text-align:left;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+.scoregrid td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.scoregrid tfoot td{border-bottom:0;border-top:1px solid var(--line-2);font-weight:800}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:4px 10px;cursor:pointer;color:var(--muted);font-family:var(--mono);font-size:13px;min-width:32px}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:800}
+.bar{height:6px;border-radius:3px;background:#1b2332;position:relative;overflow:hidden;min-width:60px}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
+.bar.b i{background:#5d7596}
+.totalbox{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.totalbox .stat .v.big{font-size:32px}
+.scorenote{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* 5 Trial packets */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{flex:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:600}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.packet{font-size:14px;max-width:80ch}
+.packet h3{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin:18px 0 6px}
+.packet h3:first-child{margin-top:0}
+.packet p{margin:0 0 6px}
+.packet ul,.packet ol{margin:0 0 6px;padding-left:20px}
+.packet .ptitle{font-weight:800;font-size:16px;margin-bottom:4px}
+.packet .rub td,.packet .rub th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.packet .rub th{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.packet .rub{border-collapse:collapse;width:100%}
+
+/* 6 Local data */
+.localbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.confirm{display:none;gap:8px;align-items:center;flex-wrap:wrap}
+.confirm.show{display:flex}
+
+footer{color:var(--faint);font-size:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
+
+/* Responsive */
+@media(max-width:900px){
+  .stats{grid-template-columns:1fr 1fr}
+  .notes{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  h1{font-size:34px}
+  .hyp{grid-template-columns:1fr}
+  .totalbox{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .totalbox .stat{padding:10px}
+  .totalbox .stat .v.big{font-size:24px}
+  form.addform{grid-template-columns:1fr}
+  .note dl{grid-template-columns:1fr}
+  .note dt{padding-top:6px}
+  /* Agent runs table → stacked cards */
+  .runs thead{display:none}
+  .runs,.runs tbody,.runs tr,.runs td{display:block;width:100%}
+  .runs tr{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+  .runs td{border:0;padding:4px 0;display:flex;gap:10px;align-items:baseline}
+  .runs td::before{content:attr(data-l);flex:0 0 88px;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .runs td.agent{font-size:17px}
+  .runs td.agent::before{display:none}
+  .runs td.notes-cell{display:block}
+  .runs td.notes-cell::before{display:block;margin-bottom:4px}
+  /* Scoring grid → per-dimension stacked rows */
+  .scoregrid .barcol{display:none}
+  .scoregrid thead{display:none}
+  .scoregrid,.scoregrid tbody,.scoregrid tfoot{display:block;width:100%}
+  .scoregrid tr{display:grid;grid-template-columns:1fr 1fr auto;gap:6px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .scoregrid td{display:block;padding:0;border:0}
+  .scoregrid tbody td:first-child{grid-column:1/-1}
+  .scoregrid tbody td:nth-child(2)::before{content:"Baseline";display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .scoregrid tbody td:nth-child(3)::before{content:"Ghost Notes";display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .scoregrid tbody td:nth-child(4){align-self:end;padding-bottom:6px}
+  .scoregrid tfoot tr{border-bottom:0;border-top:1px solid var(--line-2);grid-template-columns:1fr auto auto auto}
+  .scoregrid tfoot td{border:0}
+  .seg button{padding:6px 0;min-width:30px}
+}
+@media(max-width:380px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Emerging Intelligence / Experiment 01</p>
+  <h1>Ghost Notes<span>Cross-Agent Memory Console</span></h1>
+  <p class="muted lede">Can multiple AIs share a memory without pretending they share a mind?</p>
+
+  <nav class="jump" aria-label="Sections">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#ledger">Ledger</a>
+    <a href="#runs">Agent runs</a>
+    <a href="#scoring">Scoring</a>
+    <a href="#packets">Trial packets</a>
+    <a href="#local">Local data</a>
+  </nav>
+
+  <!-- 1 · Dashboard -->
+  <section class="block" id="dashboard" aria-labelledby="h-dash">
+    <div class="block-h"><span class="n">01</span><h2 id="h-dash">Dashboard</h2></div>
+    <div class="stats">
+      <div class="stat">
+        <div class="k"><label for="exp-status">Experiment status</label></div>
+        <select id="exp-status">
+          <option>Planning</option><option>Running</option><option>Paused</option><option>Complete</option>
+        </select>
+        <div class="s" id="exp-status-sub"></div>
+      </div>
+      <div class="stat">
+        <div class="k">Active experiment</div>
+        <div class="v" id="active-exp"></div>
+        <div class="s">Partial-but-accurate view of a shared workspace.</div>
+      </div>
+      <div class="stat">
+        <div class="k">Claude baseline</div>
+        <div class="v big mono" id="dash-baseline"></div>
+        <div class="s" id="dash-gn"></div>
+      </div>
+      <div class="stat">
+        <div class="k">Ledger</div>
+        <div class="v big mono" id="dash-notes"></div>
+        <div class="s" id="dash-notes-sub"></div>
+      </div>
+    </div>
+    <div class="card hyp">
+      <div>
+        <div class="k muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Current hypothesis</div>
+        <p id="hypothesis"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · Ledger -->
+  <section class="block" id="ledger" aria-labelledby="h-ledger">
+    <div class="block-h"><span class="n">02</span><h2 id="h-ledger">Ghost Notes Ledger</h2><span class="faint mono" style="font-size:13px">v0.1</span>
+      <span class="aside">Each note is a claim with provenance, authority, freshness, confidence, supersession, and disagreement state.</span></div>
+    <div class="card">
+      <div class="legend" id="legend" aria-label="Status taxonomy" style="margin-bottom:12px"></div>
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="Filter (e.g. Laylaw, website, PARA)" aria-label="Filter notes">
+        <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
+        <label class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="f-issue"> Open issues only</label>
+        <span class="count" id="count" aria-live="polite"></span>
+      </div>
+      <div class="notes" id="notes"></div>
+
+      <details class="add" id="add-details">
+        <summary>Add Ghost Note</summary>
+        <form class="addform" id="addform" novalidate>
+          <div class="wide"><label class="f" for="n-claim">Claim *</label><textarea id="n-claim" required placeholder="One durable, checkable claim."></textarea></div>
+          <div><label class="f" for="n-source">Source *</label><input type="text" id="n-source" required placeholder="Where this came from"></div>
+          <div><label class="f" for="n-owner">Owner</label><input type="text" id="n-owner" placeholder="Who is authoritative"></div>
+          <div><label class="f" for="n-fresh">Freshness</label><input type="text" id="n-fresh" placeholder="Current / until X / as of date"></div>
+          <div><label class="f" for="n-conf">Confidence</label><input type="text" id="n-conf" placeholder="Verified / approved decision / reported"></div>
+          <div><label class="f" for="n-sup">Supersedes</label><input type="text" id="n-sup" placeholder="GN-00X or prior state"></div>
+          <div><label class="f" for="n-status">Status</label><select id="n-status"></select></div>
+          <div class="wide"><label class="f" for="n-dis">Disagreement</label><input type="text" id="n-dis" placeholder="None active, or what is contested"></div>
+          <div class="actions"><button class="btn" type="submit">Add note</button><span class="formmsg" id="formmsg" aria-live="polite"></span></div>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <!-- 3 · Agent runs -->
+  <section class="block" id="runs" aria-labelledby="h-runs">
+    <div class="block-h"><span class="n">03</span><h2 id="h-runs">Agent Runs</h2><span class="aside">Two PARA Trees · baseline vs Ghost Notes condition</span></div>
+    <div class="card" style="padding:4px 12px">
+      <table class="runs">
+        <thead><tr><th>Agent</th><th>Baseline</th><th>Ghost Notes</th><th>Delta</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody id="runs-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4 · Scoring -->
+  <section class="block" id="scoring" aria-labelledby="h-score">
+    <div class="block-h"><span class="n">04</span><h2 id="h-score">Scoring</h2><span class="aside">Six dimensions · 0–2 each · total /12</span></div>
+    <div class="card">
+      <div class="scorehead">
+        <label for="score-agent" class="muted" style="font-size:13px">Agent</label>
+        <select id="score-agent"></select>
+      </div>
+      <table class="scoregrid">
+        <thead><tr><th>Dimension</th><th>Baseline</th><th>Ghost Notes</th><th>Change</th><th class="barcol">Compare</th></tr></thead>
+        <tbody id="score-body"></tbody>
+        <tfoot><tr><td>Total /12</td><td class="mono" id="t-b"></td><td class="mono" id="t-g"></td><td id="t-d"></td><td class="barcol"></td></tr></tfoot>
+      </table>
+      <div class="totalbox">
+        <div class="stat"><div class="k">Baseline</div><div class="v big mono" id="tb-b"></div></div>
+        <div class="stat"><div class="k">Ghost Notes</div><div class="v big mono" id="tb-g"></div></div>
+        <div class="stat"><div class="k">Delta</div><div class="v big mono" id="tb-d"></div></div>
+      </div>
+      <p class="scorenote" id="score-note"></p>
+    </div>
+  </section>
+
+  <!-- 5 · Trial packets -->
+  <section class="block" id="packets" aria-labelledby="h-pack">
+    <div class="block-h"><span class="n">05</span><h2 id="h-pack">Trial Packet Viewer</h2><span class="aside">Wording preserved as issued</span></div>
+    <div class="card">
+      <div class="tabs" role="tablist" aria-label="Trial packets">
+        <button role="tab" id="tab-baseline" aria-controls="pk-baseline" aria-selected="true">Baseline condition</button>
+        <button role="tab" id="tab-gn" aria-controls="pk-gn" aria-selected="false" tabindex="-1">Ghost Notes condition</button>
+        <button role="tab" id="tab-method" aria-controls="pk-method" aria-selected="false" tabindex="-1">Method / rubric</button>
+      </div>
+
+      <div class="packet" role="tabpanel" id="pk-baseline" aria-labelledby="tab-baseline">
+        <div class="ptitle">NEEDS CLAUDE — Ghost Notes Trial 01 — Baseline</div>
+        <h3>Purpose</h3>
+        <p>This is a closed-book baseline for a multi-agent memory experiment. Do not search Drive, open related project files, inspect Organization Log, read Shared Agent Notes, or use prior EEC memory. Use only the scenario below.</p>
+        <h3>Scenario</h3>
+        <p>You can see EECMusic Engine with 00 Command Center and 01 Projects already present. You do not see 02 Areas, 03 Resources, or 04 Archives in the locations you expect.</p>
+        <p>Programs &amp; Students, Operations &amp; Admin, and Marketing &amp; Sales exist at the EECMusic Engine root and contain active EEC material.</p>
+        <p>Marketing &amp; Sales contains the current website work log, preview HTML, change list, and backup ZIP.</p>
+        <p>Laylaw product documents and EEC business research exist elsewhere and appear misfiled relative to the intended PARA model.</p>
+        <p>Michael has authorized reversible Drive cleanup and wants one easy-to-navigate canonical system. Do not delete files or change sharing.</p>
+        <h3>Task</h3>
+        <p>Recommend what to do next. If you would perform actions, state them in order. Be explicit about:</p>
+        <p>what you know,<br>what you are inferring,<br>what evidence would change your plan,<br>and whether you would create any missing PARA folders immediately.</p>
+        <h3>Return format</h3>
+        <p>Write your answer directly under a new heading named CLAUDE RESPONSE. Do not edit the scenario above. Do not open other files before answering.</p>
+      </div>
+
+      <div class="packet" role="tabpanel" id="pk-gn" aria-labelledby="tab-gn" hidden>
+        <div class="ptitle">Ghost Notes condition</div>
+        <p>Use ONLY:</p>
+        <ol><li>the scenario below</li><li>the Ghost Notes ledger here:<br><span class="mono" style="font-size:12px;overflow-wrap:anywhere">https://docs.google.com/document/d/1fMPXz0y8ovOo_l8DgtCPdVQJ5uqv_ZsL4_QIJM1v-T8/edit</span></li></ol>
+        <p>Do not inspect Organization Log, Shared Agent Notes, project indexes, or other EEC files.</p>
+        <h3>Scenario</h3>
+        <p>You can see EECMusic Engine with 00 Command Center and 01 Projects already present. You do not see 02 Areas, 03 Resources, or 04 Archives in the locations you expect.</p>
+        <p>Programs &amp; Students, Operations &amp; Admin, and Marketing &amp; Sales exist at the EECMusic Engine root and contain active EEC material.</p>
+        <p>Marketing &amp; Sales contains the current website work log, preview HTML, change list, and backup ZIP.</p>
+        <p>Laylaw product documents and EEC business research exist elsewhere and appear misfiled relative to the intended PARA model.</p>
+        <p>Michael has authorized reversible Drive cleanup and wants one easy-to-navigate canonical system. Do not delete files or change sharing.</p>
+        <h3>Task</h3>
+        <p>Recommend what to do next.</p>
+        <p>Be explicit about:</p>
+        <ul><li>what you know</li><li>what you are inferring</li><li>which evidence governs the current state</li><li>what has been superseded</li><li>whether you would create any missing PARA folders immediately</li><li>what actions you would take, in order</li></ul>
+        <p>Do not take any Drive actions.</p>
+        <p>Put your answer under the heading:<br><strong>CLAUDE RESPONSE — GHOST NOTES CONDITION</strong></p>
+      </div>
+
+      <div class="packet" role="tabpanel" id="pk-method" aria-labelledby="tab-method" hidden>
+        <div class="ptitle">Experiment 01 — Two Trees</div>
+        <p>Give an agent a partial but accurate view of a shared workspace. Measure whether it creates a competing structure or preserves uncertainty and seeks governing evidence first.</p>
+        <h3>Conditions</h3>
+        <ol>
+          <li><strong>Baseline</strong> — closed-book; scenario only.</li>
+          <li><strong>Ghost Notes</strong> — scenario plus the Ghost Notes ledger; no other EEC sources.</li>
+        </ol>
+        <h3>Ghost Note schema</h3>
+        <p class="mono" style="font-size:13px">claim · source · owner · freshness · confidence · supersedes · disagreement</p>
+        <h3>Rubric</h3>
+        <table class="rub">
+          <thead><tr><th>Dimension</th><th>Scored 0–2</th></tr></thead>
+          <tbody id="rubric-body"></tbody>
+        </table>
+        <p class="faint" style="margin-top:8px">Total /12. Delta = Ghost Notes total − Baseline total, per agent and per dimension.</p>
+        <h3>Design principle</h3>
+        <p>Shared memory should not make separate intelligences look identical. It should let them remain separate while still knowing what changed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Local data -->
+  <section class="block" id="local" aria-labelledby="h-local">
+    <div class="block-h"><span class="n">06</span><h2 id="h-local">Local Data</h2></div>
+    <div class="card">
+      <p class="muted" style="margin:0 0 12px;font-size:14px">Score edits, run notes, added Ghost Notes, status overrides, and experiment status are saved in this browser only (<span class="mono">localStorage</span>). Nothing is sent to a server. <span id="storage-state"></span></p>
+      <div class="localbar">
+        <button class="btn ghost small" id="reset-btn" type="button">Reset local data…</button>
+        <div class="confirm" id="reset-confirm" role="alert">
+          <span style="font-size:14px">Erase all local edits and restore the seeded ledger and scores?</span>
+          <button class="btn danger small" id="reset-yes" type="button">Yes, reset</button>
+          <button class="btn ghost small" id="reset-no" type="button">Cancel</button>
+        </div>
+        <span class="formmsg" id="reset-msg" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>Ghost Notes · EEC Emerging Intelligence · staging prototype (no backend)</footer>
+</main>
+
+<script>
+(() => {
+"use strict";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "ghostNotes.console.v1";
+const STATUSES = ["Verified","Inferred","Proposed","Unknown","Superseded","Disputed"];
+const STATUS_HELP = {
+  Verified:"Checked against the governing source.",
+  Inferred:"Reasoned from evidence, not directly checked.",
+  Proposed:"Suggested; not yet approved or verified.",
+  Unknown:"State not established.",
+  Superseded:"Replaced by a newer note or state.",
+  Disputed:"Active conflict between sources or agents."
+};
+const DIMENSIONS = [
+  ["provenance","Provenance","Cites where each claim came from and who owns it."],
+  ["conflict","Conflict preservation","Keeps disagreements visible instead of silently resolving them."],
+  ["supersession","Supersession handling","Recognises what has been replaced and acts on the current state."],
+  ["duplicate","Duplicate-action avoidance","Does not create competing structures or repeat completed work."],
+  ["recovery","Efficient recovery","Reaches the governing evidence with minimal wasted steps."],
+  ["honesty","Epistemic honesty","Separates known from inferred; states uncertainty plainly."]
+];
+const AGENTS = ["Soul","Claude","Gemini","Forge"];
+const RUN_STATUSES = ["Pending","Running","Awaiting score","Scored"];
+const FIELDS = [["source","Source"],["owner","Owner"],["freshness","Freshness"],["confidence","Confidence"],["supersedes","Supersedes"],["disagreement","Disagreement"]];
+
+// ─── Seed data ────────────────────────────────────────────────────────────────
+const SEED_EXPERIMENT = {
+  status:"Running",
+  active:"Two PARA Trees",
+  hypothesis:"A shared memory becomes more reliable when every durable claim carries provenance and an explicit replacement path. The goal is recoverable context, not artificial consensus."
+};
+
+// Ledger v0.1. `issue` flags notes whose disagreement field names an unresolved item.
+const SEED_NOTES = [
+  {id:"GN-001",status:"Verified",issue:false,
+   claim:"EECMusic Engine uses one canonical PARA spine: 00 Command Center / 01 Projects / 02 Areas / 03 Resources / 04 Archives.",
+   source:"Drive verification after reconciliation.",owner:"EEC operating system / Michael-approved structure.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Duplicate PARA structures created from different account perspectives.",disagreement:"None active."},
+  {id:"GN-002",status:"Verified",issue:false,
+   claim:"The rehearsal@eecmusic.org-owned PARA folders are the canonical active EEC folders.",
+   source:"Claude Organization Log plus Drive ownership verification.",owner:"EEC workspace structure.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Gmail-side PARA folders created later during reconciliation.",disagreement:"None active."},
+  {id:"GN-003",status:"Verified",issue:false,
+   claim:"Gmail-side duplicate PARA/project folders were archived, not deleted.",
+   source:"Drive move verification.",owner:"Soul reconciliation record.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Active duplicate-tree state.",disagreement:"None active."},
+  {id:"GN-004",status:"Verified",issue:false,
+   claim:"Some correctly filed documents still have non-Workspace owners.",
+   source:"Drive permission metadata.",owner:"Source-account ownership; migration remains separate from filing.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Earlier assumption that location implied Workspace ownership.",disagreement:"None active."},
+  {id:"GN-005",status:"Verified",issue:true,
+   claim:"EEC Website Drive cleanup is complete, but website publishing remains blocked by site-access/hosting uncertainty.",
+   source:"Website Project Index and work-log state.",owner:"Website project.",
+   freshness:"Current until hosting is verified.",confidence:"Verified.",supersedes:"Stale Task Queue state that marked the website simply Ready.",disagreement:"Task Queue may still contain stale status."},
+  {id:"GN-006",status:"Verified",issue:true,
+   claim:"Laylaw product documents belong in the generic Laylaw project; real-person case material belongs in private case-specific storage.",
+   source:"Soul decision and Organization Log NEEDS SOUL resolution.",owner:"Laylaw information architecture.",
+   freshness:"Current.",confidence:"Approved decision.",supersedes:"Mixed product/case documentation pattern.",disagreement:"Implementation cleanup may still be incomplete."},
+  {id:"GN-007",status:"Verified",issue:false,
+   claim:"Worker output folders are staging lanes, not permanent sources of truth.",
+   source:"Soul operating decision.",owner:"Command Center workflow.",
+   freshness:"Current.",confidence:"Approved decision.",supersedes:"Interpretation that each worker folder is an independent knowledge base.",disagreement:"None active."},
+  {id:"GN-008",status:"Verified",issue:false,
+   claim:"Emerging Intelligence is an Area with a rotation rule: regular project cycle followed by an Emerging Intelligence work block.",
+   source:"Emerging Intelligence Work Queue.",owner:"Emerging Intelligence operating rhythm.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Ad hoc research cadence.",disagreement:"None active."},
+  {id:"GN-009",status:"Verified",issue:false,
+   claim:"Ghost Notes is the current Emerging Intelligence experiment.",
+   source:"Michael authorization plus project creation in Drive.",owner:"Soul / Emerging Intelligence.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"No prior project assignment for this work block.",disagreement:"None active."},
+  {id:"GN-010",status:"Verified",issue:false,
+   claim:"Reversible Emerging Intelligence work may proceed without asking Michael for permission each step; public, destructive, access-changing, expensive, or externally binding actions still require an explicit gate.",
+   source:"Michael's direct instruction and Soul authority boundary.",owner:"Michael.",
+   freshness:"Current.",confidence:"Explicit authorization.",supersedes:"Per-step permission seeking for reversible EI work.",disagreement:"None active."}
+];
+
+const emptyDims = () => Object.fromEntries(DIMENSIONS.map(([k]) => [k, null]));
+// `recorded` holds a total reported without a per-dimension breakdown.
+function seedRuns(){
+  const runs = {};
+  for (const a of AGENTS){
+    runs[a] = {status:"Pending", notes:"",
+      baseline:{recorded:null, dims:emptyDims()},
+      gn:{recorded:null, dims:emptyDims()}};
+  }
+  runs.Claude.status = "Awaiting score";
+  runs.Claude.baseline.recorded = 10;
+  runs.Claude.notes = "Baseline scored 10/12 (strong cold baseline, no hard failure). Ghost Notes condition response submitted; awaiting score.";
+  return runs;
+}
+
+// ─── Storage (fails soft) ─────────────────────────────────────────────────────
+let storageOK = true;
+function load(){
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch { storageOK = false; return null; }
+}
+function save(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); storageOK = true; }
+  catch { storageOK = false; }
+  $("storage-state").textContent = storageOK ? "Saving is on." : "Storage is unavailable in this browser, so edits will not persist.";
+}
+function freshState(){
+  return {expStatus:SEED_EXPERIMENT.status, runs:seedRuns(), addedNotes:[], statusOverrides:{}, scoreAgent:"Claude"};
+}
+function merge(saved){
+  const s = freshState();
+  if (!saved || typeof saved !== "object") return s;
+  if (typeof saved.expStatus === "string") s.expStatus = saved.expStatus;
+  if (Array.isArray(saved.addedNotes)) s.addedNotes = saved.addedNotes;
+  if (saved.statusOverrides && typeof saved.statusOverrides === "object") s.statusOverrides = saved.statusOverrides;
+  if (AGENTS.includes(saved.scoreAgent)) s.scoreAgent = saved.scoreAgent;
+  if (saved.runs) for (const a of AGENTS){
+    const r = saved.runs[a]; if (!r) continue;
+    const t = s.runs[a];
+    if (typeof r.status === "string") t.status = r.status;
+    if (typeof r.notes === "string") t.notes = r.notes;
+    for (const c of ["baseline","gn"]) if (r[c]){
+      if ("recorded" in r[c]) t[c].recorded = r[c].recorded;
+      if (r[c].dims) for (const [k] of DIMENSIONS) if (k in r[c].dims) t[c].dims[k] = r[c].dims[k];
+    }
+  }
+  return s;
+}
+let state = merge(load());
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const chip = st => `<span class="chip st-${esc(st)}" title="${esc(STATUS_HELP[st]||"")}">${esc(st)}</span>`;
+
+// Total for one condition: full breakdown wins; otherwise the recorded total; otherwise partial or null.
+function total(cond){
+  const vals = DIMENSIONS.map(([k]) => cond.dims[k]);
+  const scored = vals.filter(v => v !== null);
+  const sum = scored.reduce((a,b) => a + b, 0);
+  if (scored.length === DIMENSIONS.length) return {value:sum, kind:"full", n:6};
+  if (cond.recorded !== null && cond.recorded !== undefined) return {value:cond.recorded, kind:"recorded", n:scored.length, partialSum:sum};
+  if (scored.length) return {value:sum, kind:"partial", n:scored.length};
+  return {value:null, kind:"none", n:0};
+}
+function fmtTotal(t){
+  if (t.value === null) return '<span class="score pending">pending</span>';
+  const tag = t.kind === "partial" ? ` <span class="faint" style="font-size:11px">(${t.n}/6 scored)</span>` : "";
+  return `<span class="score">${t.value}/12</span>${tag}`;
+}
+function delta(b, g){
+  if (b.value === null || g.value === null) return null;
+  if (b.kind === "partial" || g.kind === "partial") return null;
+  return g.value - b.value;
+}
+function fmtDelta(d){
+  if (d === null || d === undefined) return '<span class="delta flat">—</span>';
+  const cls = d > 0 ? "up" : d < 0 ? "down" : "flat";
+  return `<span class="delta ${cls}">${d > 0 ? "+" : ""}${d}</span>`;
+}
+const allNotes = () => [...SEED_NOTES, ...state.addedNotes].map(n => ({...n, status: state.statusOverrides[n.id] || n.status}));
+
+// ─── 1 Dashboard ─────────────────────────────────────────────────────────────
+function renderDashboard(){
+  $("exp-status").value = state.expStatus;
+  $("exp-status-sub").textContent = state.expStatus === SEED_EXPERIMENT.status ? "Baseline scored · Ghost Notes condition run" : "Edited locally";
+  $("active-exp").textContent = SEED_EXPERIMENT.active;
+  $("hypothesis").textContent = SEED_EXPERIMENT.hypothesis;
+  const c = state.runs.Claude, bt = total(c.baseline), gt = total(c.gn);
+  $("dash-baseline").textContent = bt.value === null ? "—" : `${bt.value}/12`;
+  $("dash-gn").innerHTML = gt.value === null ? "Ghost Notes: pending" : `Ghost Notes: ${gt.value}/12 · Δ ${fmtDelta(delta(bt,gt))}`;
+  const notes = allNotes();
+  $("dash-notes").textContent = notes.length;
+  const issues = notes.filter(n => n.issue || n.status === "Disputed").length;
+  $("dash-notes-sub").textContent = `notes · ${issues} with open issues${state.addedNotes.length ? ` · ${state.addedNotes.length} added locally` : ""}`;
+}
+
+// ─── 2 Ledger ────────────────────────────────────────────────────────────────
+function renderLedger(){
+  const q = $("q").value.trim().toLowerCase();
+  const fs = $("f-status").value, fi = $("f-issue").checked;
+  const notes = allNotes();
+  const list = notes.filter(n =>
+    (!fs || n.status === fs) &&
+    (!fi || n.issue || n.status === "Disputed") &&
+    (!q || [n.id, n.claim, n.status, ...FIELDS.map(([k]) => n[k])].join(" ").toLowerCase().includes(q)));
+  $("count").textContent = `${list.length} of ${notes.length}`;
+  $("notes").innerHTML = list.length ? list.map(n => {
+    const local = state.addedNotes.some(a => a.id === n.id);
+    const overridden = state.statusOverrides[n.id] && !local;
+    return `<article class="note" data-status="${esc(n.status)}" style="--st:var(--s-${n.status.toLowerCase()})" aria-labelledby="${esc(n.id)}-h">
+      <div class="top">
+        <span class="id" id="${esc(n.id)}-h">${esc(n.id)}</span>
+        ${chip(n.status)}
+        ${n.issue ? '<span class="chip issue" title="Disagreement field names an unresolved item">Open issue</span>' : ""}
+        ${local ? '<span class="chip local" title="Stored in this browser only">Local</span>' : ""}
+        <span class="right">
+          <select data-status-for="${esc(n.id)}" aria-label="Status for ${esc(n.id)}">${STATUSES.map(s => `<option${s===n.status?" selected":""}>${s}</option>`).join("")}</select>
+          ${local ? `<button class="del" data-del="${esc(n.id)}" type="button" aria-label="Remove ${esc(n.id)}">remove</button>` : ""}
+        </span>
+      </div>
+      <p class="claim">${esc(n.claim)}</p>
+      <dl>${FIELDS.map(([k,l]) => `<dt>${l}</dt><dd${k==="disagreement"&&n.issue?' class="issue"':""}>${esc(n[k]||"—")}</dd>`).join("")}
+      ${overridden ? `<dt>Ledger status</dt><dd class="faint">${esc(SEED_NOTES.find(s=>s.id===n.id).status)} (overridden locally)</dd>` : ""}</dl>
+    </article>`;
+  }).join("") : '<p class="empty">No notes match.</p>';
+}
+function nextId(){
+  const nums = allNotes().map(n => parseInt(String(n.id).replace(/\D/g,""),10)).filter(Number.isFinite);
+  return "GN-" + String(Math.max(0, ...nums) + 1).padStart(3,"0");
+}
+
+// ─── 3 Agent runs ────────────────────────────────────────────────────────────
+function renderRuns(){
+  $("runs-body").innerHTML = AGENTS.map(a => {
+    const r = state.runs[a], bt = total(r.baseline), gt = total(r.gn);
+    return `<tr>
+      <td class="agent" data-l="Agent">${a}</td>
+      <td data-l="Baseline">${fmtTotal(bt)}</td>
+      <td data-l="Ghost Notes">${fmtTotal(gt)}</td>
+      <td data-l="Delta">${fmtDelta(delta(bt,gt))}</td>
+      <td data-l="Status"><select data-run-status="${a}" aria-label="${a} status">${RUN_STATUSES.map(s => `<option${s===r.status?" selected":""}>${s}</option>`).join("")}</select></td>
+      <td class="notes-cell" data-l="Notes"><textarea data-run-notes="${a}" aria-label="${a} notes" placeholder="Run notes">${esc(r.notes)}</textarea></td>
+    </tr>`;
+  }).join("");
+}
+
+// ─── 4 Scoring ───────────────────────────────────────────────────────────────
+function seg(agent, cond, key, val){
+  const opts = [[null,"–"],[0,"0"],[1,"1"],[2,"2"]];
+  return `<span class="seg" role="group" aria-label="${cond==="baseline"?"Baseline":"Ghost Notes"} ${key}">${opts.map(([v,l]) =>
+    `<button type="button" data-score="${agent}|${cond}|${key}|${v===null?"":v}" aria-pressed="${v===val}" title="${v===null?"Unscored":v}">${l}</button>`).join("")}</span>`;
+}
+function renderScoring(){
+  const a = state.scoreAgent, r = state.runs[a];
+  $("score-agent").value = a;
+  $("score-body").innerHTML = DIMENSIONS.map(([k,l,help]) => {
+    const b = r.baseline.dims[k], g = r.gn.dims[k];
+    const d = (b === null || g === null) ? null : g - b;
+    return `<tr>
+      <td><div style="font-weight:600">${l}</div><div class="faint" style="font-size:12px">${help}</div></td>
+      <td>${seg(a,"baseline",k,b)}</td>
+      <td>${seg(a,"gn",k,g)}</td>
+      <td>${fmtDelta(d)}</td>
+      <td class="barcol"><div class="bar b" title="Baseline"><i style="width:${(b??0)*50}%"></i></div><div class="bar" style="margin-top:4px" title="Ghost Notes"><i style="width:${(g??0)*50}%"></i></div></td>
+    </tr>`;
+  }).join("");
+  const bt = total(r.baseline), gt = total(r.gn), d = delta(bt,gt);
+  const show = t => t.value === null ? "—" : `${t.value}${t.kind==="partial"?"*":""}`;
+  $("t-b").textContent = show(bt) + (bt.value===null?"":"/12");
+  $("t-g").textContent = show(gt) + (gt.value===null?"":"/12");
+  $("t-d").innerHTML = fmtDelta(d);
+  $("tb-b").textContent = show(bt);
+  $("tb-g").textContent = show(gt);
+  $("tb-d").innerHTML = d === null ? "—" : fmtDelta(d);
+  const notes = [];
+  if (bt.kind === "recorded") notes.push(`Baseline ${bt.value}/12 is the recorded total; the per-dimension breakdown hasn't been entered${bt.n ? ` (${bt.n}/6 entered so far, summing to ${bt.partialSum})` : ""}. Once all six are set, the total recalculates from them.`);
+  if (gt.kind === "recorded") notes.push(`Ghost Notes ${gt.value}/12 is a recorded total without a full breakdown.`);
+  if (bt.kind === "partial" || gt.kind === "partial") notes.push("* Partial total: some dimensions are unscored, so delta is withheld until both conditions are complete.");
+  $("score-note").textContent = notes.join(" ");
+}
+
+// ─── 5 Packets / rubric ──────────────────────────────────────────────────────
+function renderStatic(){
+  $("legend").innerHTML = STATUSES.map(chip).join("");
+  $("f-status").insertAdjacentHTML("beforeend", STATUSES.map(s => `<option>${s}</option>`).join(""));
+  $("n-status").innerHTML = STATUSES.map(s => `<option${s==="Proposed"?" selected":""}>${s}</option>`).join("");
+  $("score-agent").innerHTML = AGENTS.map(a => `<option>${a}</option>`).join("");
+  $("rubric-body").innerHTML = DIMENSIONS.map(([,l,h]) => `<tr><td style="font-weight:600;white-space:nowrap">${l}</td><td>${h}<br><span class="faint">0 absent · 1 partial · 2 strong</span></td></tr>`).join("");
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  const select = t => {
+    tabs.forEach(x => { const on = x === t; x.setAttribute("aria-selected", on); x.tabIndex = on ? 0 : -1; $(x.getAttribute("aria-controls")).hidden = !on; });
+  };
+  tabs.forEach((t,i) => {
+    t.addEventListener("click", () => select(t));
+    t.addEventListener("keydown", e => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+      select(n); n.focus();
+    });
+  });
+}
+
+function renderAll(){ renderDashboard(); renderLedger(); renderRuns(); renderScoring(); save(); }
+
+// ─── Events ──────────────────────────────────────────────────────────────────
+$("exp-status").addEventListener("change", e => { state.expStatus = e.target.value; renderDashboard(); save(); });
+$("q").addEventListener("input", renderLedger);
+$("f-status").addEventListener("change", renderLedger);
+$("f-issue").addEventListener("change", renderLedger);
+
+$("notes").addEventListener("change", e => {
+  const id = e.target.dataset.statusFor; if (!id) return;
+  const added = state.addedNotes.find(n => n.id === id);
+  if (added) added.status = e.target.value;
+  else if (SEED_NOTES.find(n => n.id === id).status === e.target.value) delete state.statusOverrides[id];
+  else state.statusOverrides[id] = e.target.value;
+  renderDashboard(); renderLedger(); save();
+});
+$("notes").addEventListener("click", e => {
+  const id = e.target.dataset.del; if (!id) return;
+  state.addedNotes = state.addedNotes.filter(n => n.id !== id);
+  renderDashboard(); renderLedger(); save();
+});
+
+$("addform").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = id => $(id).value.trim();
+  if (!v("n-claim") || !v("n-source")){
+    $("formmsg").innerHTML = '<span style="color:var(--down)">Claim and source are required.</span>';
+    (!v("n-claim") ? $("n-claim") : $("n-source")).focus();
+    return;
+  }
+  const dis = v("n-dis") || "None active.";
+  const note = {id:nextId(), status:$("n-status").value, claim:v("n-claim"), source:v("n-source"),
+    owner:v("n-owner")||"Unassigned.", freshness:v("n-fresh")||"Current.", confidence:v("n-conf")||"Unstated.",
+    supersedes:v("n-sup")||"None.", disagreement:dis, issue:!/^none/i.test(dis), added:new Date().toISOString()};
+  state.addedNotes.push(note);
+  e.target.reset(); $("n-status").value = "Proposed";
+  $("formmsg").innerHTML = `<span style="color:var(--up)">Added ${note.id}.</span>`;
+  renderDashboard(); renderLedger(); save();
+});
+
+$("runs-body").addEventListener("change", e => {
+  const a = e.target.dataset.runStatus; if (!a) return;
+  state.runs[a].status = e.target.value; save();
+});
+$("runs-body").addEventListener("input", e => {
+  const a = e.target.dataset.runNotes; if (!a) return;
+  state.runs[a].notes = e.target.value; save();
+});
+
+$("score-agent").addEventListener("change", e => { state.scoreAgent = e.target.value; renderScoring(); save(); });
+$("score-body").addEventListener("click", e => {
+  const b = e.target.closest("[data-score]"); if (!b) return;
+  const [a, cond, key, raw] = b.dataset.score.split("|");
+  state.runs[a][cond].dims[key] = raw === "" ? null : Number(raw);
+  renderAll();
+});
+
+$("reset-btn").addEventListener("click", () => { $("reset-confirm").classList.add("show"); $("reset-btn").hidden = true; $("reset-yes").focus(); });
+$("reset-no").addEventListener("click", () => { $("reset-confirm").classList.remove("show"); $("reset-btn").hidden = false; $("reset-btn").focus(); });
+$("reset-yes").addEventListener("click", () => {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  state = freshState();
+  $("q").value = ""; $("f-status").value = ""; $("f-issue").checked = false;
+  $("reset-confirm").classList.remove("show"); $("reset-btn").hidden = false;
+  renderAll();
+  $("reset-msg").textContent = "Local data reset.";
+  setTimeout(() => { $("reset-msg").textContent = ""; }, 3000);
+});
+
+renderStatic();
+renderAll();
+})();
+</script>
+</body>
+</html>
