@@ -473,7 +473,15 @@ const SEED_NOTES = [
   {id:"GN-010",status:"Verified",issue:false,
    claim:"Reversible Emerging Intelligence work may proceed without asking Michael for permission each step; public, destructive, access-changing, expensive, or externally binding actions still require an explicit gate.",
    source:"Michael's direct instruction and Soul authority boundary.",owner:"Michael.",
-   freshness:"Current.",confidence:"Explicit authorization.",supersedes:"Per-step permission seeking for reversible EI work.",disagreement:"None active."}
+   freshness:"Current.",confidence:"Explicit authorization.",supersedes:"Per-step permission seeking for reversible EI work.",disagreement:"None active."},
+  {id:"GN-011",status:"Verified",issue:false,
+   claim:"The Ghost Notes console is live on a Vercel staging preview, but this does not resolve or supersede the separate EEC website publishing blocker in GN-005.",
+   source:"Claude console handoff plus successful Vercel staging deployment.",owner:"Ghost Notes project / Emerging Intelligence.",
+   freshness:"Current.",confidence:"Verified.",supersedes:"Any assumption that Ghost Notes hosting fixes the EEC website hosting problem.",disagreement:"None active."},
+  {id:"GN-012",status:"Verified",issue:false,
+   claim:"Shared backend storage is intentionally deferred until Experiment 01 shows that Ghost Notes materially improves cross-agent coordination; localStorage is sufficient for the current controlled prototype.",
+   source:"Soul decision after Claude console handoff.",owner:"Ghost Notes architecture.",
+   freshness:"Current.",confidence:"Approved decision.",supersedes:"Assumption that multi-agent shared storage must be built before the protocol is validated.",disagreement:"None active."}
 ];
 
 const emptyDims = () => Object.fromEntries(DIMENSIONS.map(([k]) => [k, null]));
@@ -487,7 +495,8 @@ function seedRuns(){
   }
   runs.Claude.status = "Awaiting score";
   runs.Claude.baseline.recorded = 10;
-  runs.Claude.notes = "Baseline scored 10/12 (strong cold baseline, no hard failure). Ghost Notes condition response submitted; awaiting score.";
+  runs.Claude.baseline.dims = {provenance:2, conflict:2, supersession:1, duplicate:2, recovery:1, honesty:2};
+  runs.Claude.notes = "Baseline scored 10/12 with dimension breakdown 2,2,1,2,1,2. Ghost Notes condition is reported complete, but the response text is not present in the shared Drive sources available to Soul, so the Ghost Notes score remains pending rather than inferred.";
   return runs;
 }
 
