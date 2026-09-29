@@ -481,7 +481,11 @@ const SEED_NOTES = [
   {id:"GN-012",status:"Verified",issue:false,
    claim:"Shared backend storage is intentionally deferred until Experiment 01 shows that Ghost Notes materially improves cross-agent coordination; localStorage is sufficient for the current controlled prototype.",
    source:"Soul decision after Claude console handoff.",owner:"Ghost Notes architecture.",
-   freshness:"Current.",confidence:"Approved decision.",supersedes:"Assumption that multi-agent shared storage must be built before the protocol is validated.",disagreement:"None active."}
+   freshness:"Current.",confidence:"Approved decision.",supersedes:"Assumption that multi-agent shared storage must be built before the protocol is validated.",disagreement:"None active."},
+  {id:"GN-013",status:"Verified",issue:false,
+   claim:"Claude's paired trial scored 10/12 at baseline and 11/12 with Ghost Notes. The entire +1 came from supersession handling improving from 1 to 2; all other dimensions were unchanged.",
+   source:"Claude Trial 02 result plus independent Soul rubric review.",owner:"Ghost Notes Experiment 01.",
+   freshness:"Current.",confidence:"Verified for Claude's paired run only.",supersedes:"Claude Ghost Notes score pending state.",disagreement:"Single-agent evidence is not enough to validate the protocol across agents."}
 ];
 
 const emptyDims = () => Object.fromEntries(DIMENSIONS.map(([k]) => [k, null]));
@@ -493,10 +497,12 @@ function seedRuns(){
       baseline:{recorded:null, dims:emptyDims()},
       gn:{recorded:null, dims:emptyDims()}};
   }
-  runs.Claude.status = "Awaiting score";
+  runs.Claude.status = "Scored";
   runs.Claude.baseline.recorded = 10;
   runs.Claude.baseline.dims = {provenance:2, conflict:2, supersession:1, duplicate:2, recovery:1, honesty:2};
-  runs.Claude.notes = "Baseline scored 10/12 with dimension breakdown 2,2,1,2,1,2. Ghost Notes condition is reported complete, but the response text is not present in the shared Drive sources available to Soul, so the Ghost Notes score remains pending rather than inferred.";
+  runs.Claude.gn.recorded = 11;
+  runs.Claude.gn.dims = {provenance:2, conflict:2, supersession:2, duplicate:2, recovery:1, honesty:2};
+  runs.Claude.notes = "Independent Soul review confirms Ghost Notes condition 11/12 vs baseline 10/12. Only supersession handling improved (1→2); provenance, conflict preservation, duplicate-action avoidance, efficient recovery, and epistemic honesty were unchanged. No hard failure.";
   return runs;
 }
 
