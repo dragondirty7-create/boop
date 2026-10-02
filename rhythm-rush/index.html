@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Rhythm Rush | BOOP</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #21262d;
+      --ink: #f0f6fc;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --good: #3fb950;
+      --warn: #d29922;
+      --danger: #f85149;
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: Inter, ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100svh; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+    button { font: inherit; }
+    .app { width: min(100%, 760px); display: grid; gap: 16px; }
+    .card { background: linear-gradient(180deg, var(--panel), #11161c); border: 1px solid #30363d; border-radius: var(--radius); box-shadow: 0 18px 55px rgba(0,0,0,.34); }
+    .hero { padding: 20px; display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+    .hero h1 { margin: 0; font-size: clamp(1.7rem, 6vw, 3rem); line-height: .95; letter-spacing: -.04em; }
+    .hero p { margin: 8px 0 0; color: var(--muted); font-size: .98rem; }
+    .cosmo { min-width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid #3b434c; font-size: 2rem; user-select: none; }
+    .game { padding: 18px; display: grid; gap: 16px; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill { background: var(--panel-2); color: var(--muted); padding: 8px 11px; border-radius: 999px; font-size: .84rem; border: 1px solid #30363d; }
+    .pill strong { color: var(--ink); }
+    .prompt { min-height: 92px; display: grid; align-content: center; gap: 8px; padding: 16px; background: #0f141a; border-radius: 18px; border: 1px solid #30363d; }
+    .prompt .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-size: .72rem; font-weight: 800; }
+    .prompt h2 { margin: 0; font-size: clamp(1.2rem, 5vw, 1.8rem); }
+    .sequence { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .beat { min-height: 58px; border-radius: 16px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid #30363d; color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: .82rem; }
+    .beat.on { border-color: var(--accent); color: var(--ink); transform: translateY(-1px); }
+    .pads { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .pad { min-height: 112px; border: 0; border-radius: 22px; background: var(--panel-2); color: var(--ink); border: 1px solid #3a424d; touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-shadow: inset 0 -8px 0 rgba(0,0,0,.14); }
+    .pad:active, .pad.hit { transform: scale(.97); border-color: var(--accent); }
+    .pad .icon { display: block; font-size: 1.7rem; margin-bottom: 7px; }
+    .pad .name { font-weight: 900; letter-spacing: .08em; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .action { min-height: 52px; border-radius: 16px; border: 1px solid #3a424d; background: #202731; color: var(--ink); font-weight: 800; touch-action: manipulation; }
+    .action.primary { background: var(--ink); color: #0d1117; border-color: var(--ink); }
+    .message { min-height: 48px; color: var(--muted); line-height: 1.35; padding: 2px 4px; }
+    .message.good { color: #7ee787; }
+    .footer { padding: 0 4px; color: #6e7681; font-size: .78rem; text-align: center; }
+    @media (min-width: 640px) {
+      .game { padding: 24px; }
+      .pads { grid-template-columns: repeat(4, 1fr); }
+      .pad { min-height: 132px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-labelledby="title">
+    <section class="card hero">
+      <div>
+        <h1 id="title">Rhythm Rush</h1>
+        <p>BOOP Arcade · Cosmo is waiting.</p>
+      </div>
+      <div class="cosmo" aria-label="Cosmo">✦</div>
+    </section>
+
+    <section class="card game">
+      <div class="status" aria-label="Game status">
+        <span class="pill">Round <strong id="round">1</strong></span>
+        <span class="pill">Score <strong id="score">0</strong></span>
+        <span class="pill">Streak <strong id="streak">0</strong></span>
+      </div>
+
+      <div class="prompt" aria-live="polite">
+        <div class="eyebrow">Cosmo says</div>
+        <h2 id="promptText">Listen, then copy the four-beat pattern.</h2>
+      </div>
+
+      <div class="sequence" id="sequence" aria-label="Four beat sequence">
+        <div class="beat">1</div><div class="beat">2</div><div class="beat">3</div><div class="beat">4</div>
+      </div>
+
+      <div class="pads" aria-label="Drum pads">
+        <button class="pad" data-pad="kick" aria-label="Kick drum"><span class="icon">●</span><span class="name">KICK</span></button>
+        <button class="pad" data-pad="snare" aria-label="Snare drum"><span class="icon">◆</span><span class="name">SNARE</span></button>
+        <button class="pad" data-pad="hat" aria-label="Hi-hat"><span class="icon">✦</span><span class="name">HAT</span></button>
+        <button class="pad" data-pad="clap" aria-label="Clap"><span class="icon">✚</span><span class="name">CLAP</span></button>
+      </div>
+
+      <div class="controls">
+        <button class="action" id="hearBtn">Hear pattern</button>
+        <button class="action primary" id="startBtn">Start round</button>
+      </div>
+
+      <div class="message" id="message" aria-live="polite">Tap Start Round when you're ready.</div>
+    </section>
+
+    <div class="footer">Mobile-first prototype · no account, no cookies, no personal data.</div>
+  </main>
+
+  <script>
+    const pads = [...document.querySelectorAll('.pad')];
+    const beats = [...document.querySelectorAll('.beat')];
+    const patterns = [
+      ['kick','snare','kick','snare'],
+      ['kick','hat','snare','hat'],
+      ['kick','kick','snare','clap'],
+      ['hat','kick','hat','snare']
+    ];
+
+    let round = 1;
+    let score = 0;
+    let streak = 0;
+    let target = patterns[0];
+    let input = [];
+    let accepting = false;
+    let audio;
+
+    const $ = id => document.getElementById(id);
+    const ctx = () => audio || (audio = new (window.AudioContext || window.webkitAudioContext)());
+
+    function tone(kind) {
+      const a = ctx();
+      const now = a.currentTime;
+      const osc = a.createOscillator();
+      const gain = a.createGain();
+      const freqs = { kick: 90, snare: 180, hat: 520, clap: 280 };
+      osc.frequency.setValueAtTime(freqs[kind], now);
+      osc.type = kind === 'hat' ? 'square' : 'sine';
+      gain.gain.setValueAtTime(kind === 'hat' ? .06 : .12, now);
+      gain.gain.exponentialRampToValueAtTime(.001, now + (kind === 'kick' ? .22 : .12));
+      osc.connect(gain).connect(a.destination);
+      osc.start(now);
+      osc.stop(now + .25);
+    }
+
+    function setStatus() {
+      $('round').textContent = round;
+      $('score').textContent = score;
+      $('streak').textContent = streak;
+    }
+
+    function flashPad(kind) {
+      const pad = pads.find(p => p.dataset.pad === kind);
+      if (!pad) return;
+      pad.classList.add('hit');
+      setTimeout(() => pad.classList.remove('hit'), 120);
+    }
+
+    async function playPattern() {
+      accepting = false;
+      input = [];
+      $('message').className = 'message';
+      $('message').textContent = 'Listen...';
+      for (let i = 0; i < target.length; i++) {
+        beats.forEach((b, n) => b.classList.toggle('on', n === i));
+        tone(target[i]);
+        flashPad(target[i]);
+        await new Promise(r => setTimeout(r, 430));
+      }
+      beats.forEach(b => b.classList.remove('on'));
+      $('message').textContent = 'Your turn — copy all four beats.';
+      accepting = true;
+    }
+
+    function newRound() {
+      target = patterns[(round - 1) % patterns.length];
+      input = [];
+      $('promptText').textContent = round === 1 ? 'Listen, then copy the four-beat pattern.' : 'Nice. Here comes the next groove.';
+      setStatus();
+      playPattern();
+    }
+
+    function finishAttempt() {
+      accepting = false;
+      const correct = input.every((x, i) => x === target[i]);
+      if (correct) {
+        streak += 1;
+        score += 100 + (streak - 1) * 25;
+        $('message').className = 'message good';
+        $('message').textContent = streak > 1 ? 'Yes! That groove is locked in. Streak up!' : 'Yes! You copied the groove.';
+        round += 1;
+        setStatus();
+        setTimeout(newRound, 900);
+      } else {
+        streak = 0;
+        setStatus();
+        $('message').className = 'message';
+        $('message').textContent = 'Almost. Cosmo will play it again — listen for the order.';
+        setTimeout(playPattern, 900);
+      }
+    }
+
+    pads.forEach(pad => {
+      pad.addEventListener('pointerdown', () => {
+        const kind = pad.dataset.pad;
+        tone(kind);
+        flashPad(kind);
+        if (!accepting) return;
+        input.push(kind);
+        beats.forEach((b, n) => {
+          b.classList.toggle('on', n === input.length - 1);
+          if (n < input.length) b.textContent = input[n].toUpperCase();
+        });
+        if (input.length === 4) {
+          setTimeout(() => {
+            beats.forEach((b, n) => { b.classList.remove('on'); b.textContent = String(n + 1); });
+            finishAttempt();
+          }, 180);
+        }
+      });
+    });
+
+    $('hearBtn').addEventListener('click', playPattern);
+    $('startBtn').addEventListener('click', newRound);
+
+    window.addEventListener('keydown', e => {
+      const map = { '1':'kick', '2':'snare', '3':'hat', '4':'clap' };
+      if (!map[e.key]) return;
+      e.preventDefault();
+      pads.find(p => p.dataset.pad === map[e.key])?.dispatchEvent(new PointerEvent('pointerdown'));
+    });
+
+    setStatus();
+  </script>
+</body>
+</html>
