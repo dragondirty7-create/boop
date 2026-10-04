@@ -3,6 +3,10 @@
   "version": "0.8.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test:teacher": "node --test tests/teacher-copilot.test.js",
+    "check:teacher": "node --check teacher-copilot/content.js && node --check teacher-copilot/planner.js && node --check teacher-copilot/app.js && node scripts/check-teacher-copilot.js"
+  },
   "engines": {
     "node": ">=20"
   },
