@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>EEC Teacher Copilot · Adult review prototype</title>
+  <link rel="stylesheet" href="./styles.css"><script type="module" src="./app.js"></script>
+</head>
+<body>
+<header><span class="brand">EEC / TEACHER COPILOT</span><span class="badge">Adult review prototype</span></header>
+<main>
+  <div class="intro"><p class="eyebrow">Plan less. Make more music.</p><h1>A good session starts<br>with one musical idea.</h1><p>Plan, adapt, find your next move, and reflect. You lead the room.</p></div>
+  <aside class="notice"><strong>For teachers to review.</strong> Draft content awaits EEC review and adult testing. Use general session settings only. No learner names, accounts, notes, recordings, or uploads. Work stays in this tab until you download or print it; refreshing clears it.</aside>
+  <nav aria-label="Teacher jobs"><button type="button" data-job="plan" aria-current="page">01 · Plan</button><button type="button" data-job="adapt">02 · Adapt</button><button type="button" data-job="facilitate">03 · Next move</button><button type="button" data-job="reflect">04 · Reflect</button></nav>
+  <div class="workspace">
+    <section id="plan" class="job"><p class="eyebrow">Before teaching</p><h2>Plan a session</h2><form id="plan-form"><div id="plan-fields" class="fields"></div><button class="primary" type="submit">Build session draft</button></form></section>
+    <section id="adapt" class="job" hidden><p class="eyebrow">Many ways into the music</p><h2>Adapt an activity</h2><p>Choose practical access options. No diagnosis is needed. Changes apply to your whole session draft.</p><form id="adapt-form"><div id="access-fields" class="fields"></div><button class="primary" type="submit">Apply access choices</button></form></section>
+    <section id="facilitate" class="job" hidden><p class="eyebrow">During teaching</p><h2>One next move</h2><p>Choose what you observed. You decide whether to use the suggestion.</p><div id="situation-field"></div><div id="move" class="move" aria-live="polite"></div></section>
+    <section id="reflect" class="job" hidden><p class="eyebrow">After teaching</p><h2>Reflect on the music</h2><p>Record only general musical evidence and supports, without identifying anyone. These choices are included in your next export.</p><form id="reflection-form"><div id="reflection-fields" class="fields"></div><button class="primary" type="submit">Add reflection to draft</button></form><div id="reflection-result" aria-live="polite"></div></section>
+    <section class="preview" aria-labelledby="preview-title"><div class="preview-head"><div><p class="eyebrow">Your session draft</p><h2 id="preview-title">Make a four-count phrase</h2></div><button id="reset" type="button">Clear & reset</button></div><div id="status" role="status" aria-live="polite"></div><div id="session"></div><div class="export-actions"><button id="download" class="primary" type="button">Download session plan (.md)</button><button id="print" type="button">Print / Save PDF</button></div><p class="caption">Export includes the complete session, access choices, next-move suggestions, reflection, sources, and prototype limits.</p></section>
+  </div>
+  <details><summary>Content, support, and launch status</summary><p id="content-version"></p><ul id="sources"></ul><p>No staffed support service or response commitment is configured. Ask your program lead for teaching review. For a safety concern, follow your organization’s safeguarding or emergency procedure; this tool does not assess danger or send alerts.</p><p>Launch requires reviewed EEC content, adult pilots showing usable plans and safe handoffs, accessibility and quality review, legal review of data flow and claims, and named support/update owners. This prototype has not met those gates.</p></details>
+</main>
+<section id="print-document" aria-label="Exported session plan"></section>
+<footer>Share the knowledge. Make the music. · Teacher judgment leads.</footer>
+<noscript>This workspace needs JavaScript to build and export session drafts.</noscript>
+</body></html>

@@ -1,0 +1,10 @@
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const root=new URL('../teacher-copilot/',import.meta.url);
+const html=readFileSync(new URL('index.html',root),'utf8');
+const js=readFileSync(new URL('app.js',root),'utf8');
+assert.match(html,/connect-src 'none'/);
+assert.ok(!/fetch\(|localStorage|sessionStorage|indexedDB|getUserMedia|MediaRecorder|\/api\/cosmo|innerHTML/.test(js),'Teacher slice must stay isolated from data, media and unsafe rendering APIs');
+for(const filename of ['app.js','styles.css','planner.js','content.js'])assert.ok(readFileSync(new URL(filename,root),'utf8').length);
+for(const job of ['plan','adapt','facilitate','reflect'])assert.ok(html.includes(`id="${job}"`));
+console.log('Teacher Copilot isolation and static asset checks passed.');

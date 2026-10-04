@@ -1,0 +1,33 @@
+// Optional DOM integration check; this does not replace real browser/access testing.
+// Install jsdom@26.1.0 in a scratch tools directory and set EEC_DOM_MODULE to its api.js.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const { JSDOM } = await import(process.env.EEC_DOM_MODULE || 'jsdom');
+const dom = new JSDOM(readFileSync(new URL('../teacher-copilot/index.html',import.meta.url),'utf8'),{url:'http://localhost/teacher-copilot/'});
+globalThis.window=dom.window;globalThis.document=dom.window.document;
+const $=id=>document.getElementById(id);
+let downloaded,downloadName,printed=false;
+const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
+URL.createObjectURL=blob=>{downloaded=blob;return 'blob:test';};URL.revokeObjectURL=()=>{};
+dom.window.HTMLAnchorElement.prototype.click=function(){downloadName=this.download;};
+dom.window.print=()=>{printed=true;};
+await import('../teacher-copilot/app.js');
+const change=(id,value)=>{$(id).value=value;$(id).dispatchEvent(new window.Event('change',{bubbles:true}));};
+const submit=id=>$(id).dispatchEvent(new window.Event('submit',{cancelable:true,bubbles:true}));
+const job=id=>document.querySelector(`[data-job="${id}"]`).click();
+assert.match($('session').textContent,/15 min/);
+change('band','explorers');assert.equal($('duration').value,'25');change('goal','pitch');change('review','rhythm');change('material','keyboard');change('group','class');submit('plan-form');
+assert.match($('session').textContent,/25 min/);assert.match($('preview-title').textContent,/two-pitch/);assert.match($('session').textContent,/original|Choose an order/);
+job('adapt');assert.equal($('adapt').hidden,false);change('sound','quiet');change('language','literal');change('response','untimed');change('notation','icons');change('movement','seated');change('theme','space');change('visuals','simple');submit('adapt-form');
+assert.match($('session').textContent,/one sound at a time/);assert.match($('session').textContent,/no response countdown/);
+job('facilitate');change('situation','safety');assert.match($('move').textContent,/cannot assess danger/);assert.match($('move').textContent,/Stop option/);
+job('reflect');change('reflection-evidence','changed');change('reflection-support','wait');change('reflection-creation','partial');change('reflection-next','pitch');submit('reflection-form');assert.match($('session').textContent,/Extra wait time/);
+$('download').click();assert.equal(downloadName,'EEC-session-plan.md');const markdown=await downloaded.text();
+for(const part of ['Launch','Play','Learn','Make','Land','25 minutes','Quiet','Extra wait time','Source register','not market-ready'])assert.ok(markdown.includes(part),part);
+$('print').click();assert.equal(printed,true);assert.equal($('print-document').textContent,markdown);
+submit('adapt-form');assert.match($('session').textContent,/Extra wait time/);
+job('plan');submit('plan-form');assert.ok(!$('session').textContent.includes('Extra wait time'));assert.match($('print-document').textContent,/Creation completed: Not recorded/);
+job('reflect');submit('reflection-form');$('reset').click();assert.equal($('band').value,'littles');assert.equal($('sound').value,'comfortable');assert.equal($('situation').value,'ready');assert.equal($('plan').hidden,false);assert.match($('print-document').textContent,/Creation completed: Not recorded/);
+assert.equal(window.localStorage.length,0);assert.equal(window.sessionStorage.length,0);
+URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;dom.window.close();
+console.log('DOM flow passed: plan → seven adaptations → safety handoff → reflection → Markdown download → print document → new-plan clearing → reset. No stored state.');
