@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Starboard — BOOP Sound Club</title>
+<meta name="description" content="A cosmic pentatonic step sequencer for the BOOP Sound Club. No wrong notes. Tap stars, press play, jam." />
+<style>
+  :root{
+    --ink:#0e1420; --ink2:#0a0f18; --cream:#f2ebdd; --dim:#9a9a8c;
+    --amber:#e8a542; --teal:#6c9e9c; --cell:#182233; --cell-off:#141d2c;
+    --glow: 0 0 14px rgba(232,165,66,.65), 0 0 34px rgba(232,165,66,.28);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(130% 100% at 50% -10%, #152135 0%, var(--ink) 55%, var(--ink2) 100%);
+    color:var(--cream); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100%; display:flex; flex-direction:column; align-items:center;
+    padding:18px 16px 30px; -webkit-tap-highlight-color:transparent; overflow-x:hidden;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(1.4px 1.4px at 20% 30%, rgba(242,235,221,.5), transparent),
+      radial-gradient(1.2px 1.2px at 70% 20%, rgba(242,235,221,.4), transparent),
+      radial-gradient(1.6px 1.6px at 85% 65%, rgba(242,235,221,.35), transparent),
+      radial-gradient(1.2px 1.2px at 35% 80%, rgba(242,235,221,.35), transparent),
+      radial-gradient(1.2px 1.2px at 12% 65%, rgba(242,235,221,.3), transparent);
+  }
+  .wrap{width:100%;max-width:720px;position:relative;z-index:1}
+  .back{display:inline-block;margin:0 0 10px;color:var(--teal);text-decoration:none;
+    font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;
+    border:1px solid rgba(108,158,156,.4);border-radius:999px;padding:8px 14px}
+  .back:hover{filter:brightness(1.12)}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:2px}
+  h1{font-size:clamp(26px,7vw,40px);letter-spacing:.14em;font-weight:600;margin:0}
+  h1 .star{color:var(--amber)}
+  .tag{font:500 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .sub{color:var(--dim);font-size:13.5px;margin:4px 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;margin:0 0 14px}
+  .cell{aspect-ratio:1/1;border-radius:7px;background:var(--cell-off);
+    border:1px solid rgba(242,235,221,.06);transition:transform .06s,background .12s,box-shadow .12s;cursor:pointer}
+  .cell:nth-child(16n+1),.cell:nth-child(16n+2),.cell:nth-child(16n+3),.cell:nth-child(16n+4){background:var(--cell)}
+  .cell.beat{outline:1px solid rgba(108,158,156,.18)}
+  .cell.on{background:linear-gradient(160deg,#f6c070,#e8a542);box-shadow:var(--glow)}
+  .cell.col{box-shadow:inset 0 0 0 2px rgba(108,158,156,.55)}
+  .cell.hit{transform:scale(1.14)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button{font:600 14px/1 inherit;color:var(--ink);background:var(--cream);border:0;border-radius:999px;
+    padding:11px 18px;cursor:pointer;transition:transform .08s,filter .15s}
+  button:hover{filter:brightness(1.06)} button:active{transform:translateY(1px)}
+  button.ghost{background:transparent;color:var(--cream);border:1px solid rgba(242,235,221,.22)}
+  button.amber{background:var(--amber)}
+  .tempo{display:flex;align-items:center;gap:9px;color:var(--dim);font:500 12px/1 ui-monospace,monospace;letter-spacing:.08em}
+  input[type=range]{accent-color:var(--amber);width:130px}
+  footer{margin-top:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    color:var(--dim);font:500 12px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:.04em}
+  footer a{color:var(--teal);text-decoration:none;border-bottom:1px dotted rgba(108,158,156,.5)}
+  @media (max-width:420px){ .grid{gap:3px} .cell{border-radius:5px} h1{letter-spacing:.08em} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">← BOOP</a>
+  <header>
+    <h1><span class="star">✦</span> STARBOARD</h1>
+    <span class="tag">BOOP · Sound&nbsp;Club</span>
+  </header>
+  <p class="sub">A cosmic step sequencer, tuned to a pentatonic sky — so there are <strong>no wrong notes</strong>. Tap the stars, press play, and jam. 🎛️</p>
+
+  <div class="grid" id="grid" aria-label="step sequencer grid"></div>
+
+  <div class="controls">
+    <button id="play" class="amber">► Play</button>
+    <button id="surprise" class="ghost">✨ Surprise me</button>
+    <button id="clear" class="ghost">Clear</button>
+    <span class="tempo"><label for="tempo">TEMPO</label>
+      <input id="tempo" type="range" min="64" max="176" value="104" />
+      <span id="bpm">104</span></span>
+  </div>
+
+  <footer>
+    <span>built by Claude · <span style="color:var(--amber)">back to the fun</span></span>
+    <span><a href="./">← back to BOOP</a></span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const ROWS = 7, STEPS = 16;
+  // major-pentatonic sky (low → high): C4 D4 E4 G4 A4 C5 D5
+  const FREQS = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33];
+  const rowsTopDown = [...Array(ROWS).keys()].reverse(); // top row = highest note
+  const grid = document.getElementById('grid');
+  const cells = [];           // cells[row][step]
+  const state = Array.from({length: ROWS}, () => new Array(STEPS).fill(false));
+
+  rowsTopDown.forEach(r => {
+    cells[r] = [];
+    for (let s = 0; s < STEPS; s++) {
+      const el = document.createElement('div');
+      el.className = 'cell' + ((s % 4 === 0) ? ' beat' : '');
+      el.setAttribute('role','button'); el.setAttribute('aria-pressed','false');
+      const toggle = () => { state[r][s] = !state[r][s]; el.classList.toggle('on', state[r][s]);
+        el.setAttribute('aria-pressed', state[r][s]); if (state[r][s]) blip(FREQS[r], 0.0, 0.18); };
+      el.addEventListener('pointerdown', (e) => { e.preventDefault(); ensureAudio(); toggle(); });
+      cells[r][s] = el; grid.appendChild(el);
+    }
+  });
+
+  // ---- Web Audio ----
+  let AC, master, delay, fb, wet;
+  function ensureAudio(){
+    if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
+    delay = AC.createDelay(); delay.delayTime.value = 0.19;
+    fb = AC.createGain(); fb.gain.value = 0.28;
+    wet = AC.createGain(); wet.gain.value = 0.22;
+    delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+  }
+  function blip(freq, when, dur, gain=0.22){
+    ensureAudio();
+    const t = AC.currentTime + when;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'triangle'; o.frequency.value = freq;
+    const o2 = AC.createOscillator(); o2.type='sine'; o2.frequency.value = freq*2;
+    const g2 = AC.createGain(); g2.gain.value = 0;
+    o.connect(g); o2.connect(g2); g.connect(master); g.connect(delay); g2.connect(master);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(gain*0.12, t + 0.008);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + dur*0.6);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
+  }
+
+  // ---- scheduler (lookahead) ----
+  let playing = false, current = 0, nextTime = 0, timer = null;
+  let bpm = 104;
+  const LOOKAHEAD = 0.1, TICK = 25;
+  function secsPerStep(){ return (60 / bpm) / 4; } // 16th notes
+  function schedule(){
+    while (nextTime < AC.currentTime + LOOKAHEAD){
+      const step = current, when = nextTime - AC.currentTime;
+      const swing = (step % 2 === 1) ? secsPerStep()*0.06 : 0;
+      for (let r = 0; r < ROWS; r++){
+        if (state[r][step]) blip(FREQS[r], Math.max(0, when)+swing, 0.42, 0.2);
+      }
+      const uiAt = performance.now() + Math.max(0, when)*1000;
+      paintStep(step, uiAt);
+      nextTime += secsPerStep();
+      current = (current + 1) % STEPS;
+    }
+  }
+  function paintStep(step, uiAt){
+    const delayMs = Math.max(0, uiAt - performance.now());
+    setTimeout(() => {
+      for (let s = 0; s < STEPS; s++) for (let r = 0; r < ROWS; r++) cells[r][s].classList.toggle('col', s === step);
+      for (let r = 0; r < ROWS; r++) if (state[r][step]){
+        const el = cells[r][step]; el.classList.add('hit'); setTimeout(()=>el.classList.remove('hit'),90);
+      }
+    }, delayMs);
+  }
+  function start(){ ensureAudio(); if (AC.state==='suspended') AC.resume();
+    playing = true; current = 0; nextTime = AC.currentTime + 0.06;
+    document.getElementById('play').textContent = '❚❚ Stop';
+    timer = setInterval(schedule, TICK); }
+  function stop(){ playing = false; clearInterval(timer); timer = null;
+    document.getElementById('play').textContent = '► Play';
+    cells.flat().forEach(c => c.classList.remove('col','hit')); }
+
+  // ---- controls ----
+  document.getElementById('play').addEventListener('click', () => playing ? stop() : start());
+  document.getElementById('clear').addEventListener('click', () => {
+    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++){ state[r][s]=false; cells[r][s].classList.remove('on'); cells[r][s].setAttribute('aria-pressed','false'); }
+  });
+  document.getElementById('surprise').addEventListener('click', () => {
+    ensureAudio();
+    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++){ state[r][s]=false; cells[r][s].classList.remove('on'); }
+    let r = 3;
+    for (let s=0;s<STEPS;s++){
+      if (Math.random() < (s%4===0 ? 0.92 : 0.5)){
+        r = Math.min(ROWS-1, Math.max(0, r + (Math.floor(Math.random()*3)-1)));
+        state[r][s]=true; cells[r][s].classList.add('on'); cells[r][s].setAttribute('aria-pressed','true');
+        if (s%4===0 && Math.random()<0.5){ const r2=Math.max(0,r-2); state[r2][s]=true; cells[r2][s].classList.add('on'); }
+      }
+    }
+    if (!playing) start();
+  });
+  const tempo = document.getElementById('tempo'), bpmOut = document.getElementById('bpm');
+  tempo.addEventListener('input', () => { bpm = +tempo.value; bpmOut.textContent = bpm; });
+
+  // seed a tiny starter so it's alive on first look
+  [[3,0],[5,2],[4,4],[6,6],[3,8],[5,10],[2,12],[4,14]].forEach(([r,s])=>{ state[r][s]=true; cells[r][s].classList.add('on'); });
+})();
+</script>
+</body>
+</html>
