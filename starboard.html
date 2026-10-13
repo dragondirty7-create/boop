@@ -37,17 +37,18 @@
   .tag{font:500 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
   .sub{color:var(--dim);font-size:13.5px;margin:4px 0 16px}
   .grid{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;margin:0 0 14px}
-  .cell{aspect-ratio:1/1;border-radius:7px;background:var(--cell-off);
+  .cell{appearance:none;padding:0;min-width:0;aspect-ratio:1/1;border-radius:7px;background:var(--cell-off);
     border:1px solid rgba(242,235,221,.06);transition:transform .06s,background .12s,box-shadow .12s;cursor:pointer}
   .cell:nth-child(16n+1),.cell:nth-child(16n+2),.cell:nth-child(16n+3),.cell:nth-child(16n+4){background:var(--cell)}
   .cell.beat{outline:1px solid rgba(108,158,156,.18)}
   .cell.on{background:linear-gradient(160deg,#f6c070,#e8a542);box-shadow:var(--glow)}
   .cell.col{box-shadow:inset 0 0 0 2px rgba(108,158,156,.55)}
   .cell.hit{transform:scale(1.14)}
+  .cell:focus-visible{outline:3px solid var(--cream);outline-offset:1px;position:relative;z-index:2}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  button{font:600 14px/1 inherit;color:var(--ink);background:var(--cream);border:0;border-radius:999px;
+  .controls button{font:600 14px/1 inherit;color:var(--ink);background:var(--cream);border:0;border-radius:999px;
     padding:11px 18px;cursor:pointer;transition:transform .08s,filter .15s}
-  button:hover{filter:brightness(1.06)} button:active{transform:translateY(1px)}
+  .controls button:hover{filter:brightness(1.06)} .controls button:active{transform:translateY(1px)}
   button.ghost{background:transparent;color:var(--cream);border:1px solid rgba(242,235,221,.22)}
   button.amber{background:var(--amber)}
   .tempo{display:flex;align-items:center;gap:9px;color:var(--dim);font:500 12px/1 ui-monospace,monospace;letter-spacing:.08em}
@@ -67,7 +68,7 @@
   </header>
   <p class="sub">A cosmic step sequencer, tuned to a pentatonic sky — so there are <strong>no wrong notes</strong>. Tap the stars, press play, and jam. 🎛️</p>
 
-  <div class="grid" id="grid" aria-label="step sequencer grid"></div>
+  <div class="grid" id="grid" role="group" aria-label="step sequencer grid"></div>
 
   <div class="controls">
     <button id="play" class="amber">► Play</button>
@@ -89,21 +90,36 @@
   const ROWS = 7, STEPS = 16;
   // major-pentatonic sky (low → high): C4 D4 E4 G4 A4 C5 D5
   const FREQS = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33];
+  const NOTES = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5'];
   const rowsTopDown = [...Array(ROWS).keys()].reverse(); // top row = highest note
   const grid = document.getElementById('grid');
   const cells = [];           // cells[row][step]
   const state = Array.from({length: ROWS}, () => new Array(STEPS).fill(false));
 
+  function setCell(r, s, on){
+    state[r][s] = on;
+    cells[r][s].classList.toggle('on', on);
+    cells[r][s].setAttribute('aria-pressed', String(on));
+  }
+
   rowsTopDown.forEach(r => {
     cells[r] = [];
     for (let s = 0; s < STEPS; s++) {
-      const el = document.createElement('div');
+      const el = document.createElement('button');
+      el.type = 'button';
       el.className = 'cell' + ((s % 4 === 0) ? ' beat' : '');
-      el.setAttribute('role','button'); el.setAttribute('aria-pressed','false');
-      const toggle = () => { state[r][s] = !state[r][s]; el.classList.toggle('on', state[r][s]);
-        el.setAttribute('aria-pressed', state[r][s]); if (state[r][s]) blip(FREQS[r], 0.0, 0.18); };
-      el.addEventListener('pointerdown', (e) => { e.preventDefault(); ensureAudio(); toggle(); });
+      el.setAttribute('aria-label', `${NOTES[r]}, step ${s + 1}`);
+      const toggle = () => { ensureAudio(); setCell(r, s, !state[r][s]);
+        if (state[r][s]) blip(FREQS[r], 0.0, 0.18); };
+      // Keep immediate touch/mouse audition. The following pointer click must not toggle twice.
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault(); el.focus({preventScroll:true}); toggle();
+      });
+      // Native buttons generate zero-detail clicks for Enter, Space and assistive activation.
+      el.addEventListener('click', (e) => { if (e.detail === 0) toggle(); });
       cells[r][s] = el; grid.appendChild(el);
+      setCell(r, s, false);
     }
   });
 
@@ -173,17 +189,17 @@
   // ---- controls ----
   document.getElementById('play').addEventListener('click', () => playing ? stop() : start());
   document.getElementById('clear').addEventListener('click', () => {
-    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++){ state[r][s]=false; cells[r][s].classList.remove('on'); cells[r][s].setAttribute('aria-pressed','false'); }
+    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++) setCell(r, s, false);
   });
   document.getElementById('surprise').addEventListener('click', () => {
     ensureAudio();
-    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++){ state[r][s]=false; cells[r][s].classList.remove('on'); }
+    for (let r=0;r<ROWS;r++) for (let s=0;s<STEPS;s++) setCell(r, s, false);
     let r = 3;
     for (let s=0;s<STEPS;s++){
       if (Math.random() < (s%4===0 ? 0.92 : 0.5)){
         r = Math.min(ROWS-1, Math.max(0, r + (Math.floor(Math.random()*3)-1)));
-        state[r][s]=true; cells[r][s].classList.add('on'); cells[r][s].setAttribute('aria-pressed','true');
-        if (s%4===0 && Math.random()<0.5){ const r2=Math.max(0,r-2); state[r2][s]=true; cells[r2][s].classList.add('on'); }
+        setCell(r, s, true);
+        if (s%4===0 && Math.random()<0.5){ const r2=Math.max(0,r-2); setCell(r2, s, true); }
       }
     }
     if (!playing) start();
@@ -192,7 +208,7 @@
   tempo.addEventListener('input', () => { bpm = +tempo.value; bpmOut.textContent = bpm; });
 
   // seed a tiny starter so it's alive on first look
-  [[3,0],[5,2],[4,4],[6,6],[3,8],[5,10],[2,12],[4,14]].forEach(([r,s])=>{ state[r][s]=true; cells[r][s].classList.add('on'); });
+  [[3,0],[5,2],[4,4],[6,6],[3,8],[5,10],[2,12],[4,14]].forEach(([r,s])=>setCell(r, s, true));
 })();
 </script>
 </body>
