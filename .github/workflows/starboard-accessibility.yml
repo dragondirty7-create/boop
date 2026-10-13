@@ -1,0 +1,24 @@
+name: Starboard accessibility
+on:
+  pull_request:
+    paths:
+      - 'starboard.html'
+      - 'tests/starboard*'
+      - 'package.json'
+      - '.github/workflows/starboard-accessibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:starboard:state
+      - run: npm run test:starboard

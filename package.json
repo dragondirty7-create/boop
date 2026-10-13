@@ -9,5 +9,12 @@
   "dependencies": {
     "ai": "^6.0.39",
     "openai": "^6.0.0"
+  },
+  "scripts": {
+    "test:starboard": "node --test tests/starboard.test.cjs",
+    "test:starboard:state": "node --test tests/starboard-state.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }
